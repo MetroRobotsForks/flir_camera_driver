@@ -18,6 +18,8 @@
 
 #include <camera_info_manager/camera_info_manager.hpp>
 #include <deque>
+#include <diagnostic_updater/diagnostic_updater.hpp>
+#include <diagnostic_updater/publisher.hpp>
 #include <flir_camera_msgs/msg/camera_control.hpp>
 #include <flir_camera_msgs/msg/image_meta_data.hpp>
 #include <image_transport/image_transport.hpp>
@@ -77,6 +79,8 @@ private:
   bool setBool(const std::string & nodeName, bool v);
   bool execute(const std::string & nodeName);
   bool readParameterDefinitionFile();
+  void startDiagnostics();
+  void stopDiagnostics();
 
   rclcpp::Time getAdjustedTimeStamp(uint64_t t, int64_t sensorTime);
 
@@ -178,6 +182,11 @@ private:
   std::shared_ptr<Synchronizer> synchronizer_;
   std::shared_ptr<ExposureController> exposureController_;
   bool firstSynchronizedFrame_{true};
+  std::shared_ptr<diagnostic_updater::Updater> updater_;
+  std::shared_ptr<diagnostic_updater::TopicDiagnostic> topicDiagnostic_;
+  std::shared_ptr<diagnostic_updater::FrequencyStatus> imageArrivalDiagnostic_;
+  double maxFreqDiag_{0};
+  double minFreqDiag_{0};
 };
 }  // namespace spinnaker_camera_driver
 #endif  // SPINNAKER_CAMERA_DRIVER__CAMERA_HPP_

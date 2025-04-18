@@ -71,13 +71,14 @@ include_directories(SYSTEM
 # list of all packages that use ament for export (may work for others too)
 
 set(ROS_DEPENDENCIES
+  "camera_info_manager"
+  "diagnostic_updater"
+  "image_transport"
+  "flir_camera_msgs"
   "rclcpp"
   "rclcpp_components"
   "sensor_msgs"
-  "std_msgs"
-  "camera_info_manager"
-  "image_transport"
-  "flir_camera_msgs")
+  "std_msgs")
 
 # find dependencies
 find_package(ament_cmake REQUIRED)

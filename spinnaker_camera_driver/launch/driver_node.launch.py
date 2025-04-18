@@ -67,6 +67,9 @@ example_parameters = {
         'chunk_enable_gain': True,
         'chunk_selector_timestamp': 'Timestamp',
         'chunk_enable_timestamp': True,
+        'diagnostic_period': 1.0,
+        'diagnostic_min_freq': 39.0,
+        'diagnostic_max_freq': 41.0
     },
     'blackfly': {
         'debug': False,

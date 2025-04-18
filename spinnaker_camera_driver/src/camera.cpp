@@ -133,6 +133,7 @@ Camera::~Camera()
 
 bool Camera::stop()
 {
+  stopDiagnostics();
   stopCamera();
   if (wrapper_) {
     wrapper_->deInitCamera();
@@ -519,6 +520,9 @@ void Camera::processImage(const ImageConstPtr & im)
     } else {
       droppedCount_++;
     }
+    if (imageArrivalDiagnostic_) {
+      imageArrivalDiagnostic_->tick();
+    }
   }
 }
 
@@ -659,6 +663,9 @@ void Camera::doPublish(const ImageConstPtr & im)
     } else {
       // const auto t0 = node_->now();
       pub_.publish(std::move(img), std::move(cinfo));
+      if (topicDiagnostic_) {
+        topicDiagnostic_->tick(t);
+      }
       // const auto t1 = node_->now();
       // std::cout << "dt: " << (t1 - t0).nanoseconds() * 1e-9 << std::endl;
       publishedCount_++;
@@ -748,6 +755,8 @@ bool Camera::start()
       break;
     }
   }
+  startDiagnostics();  // not clear exactly when diagnostics should be started
+
   if (!foundCamera) {
     LOG_ERROR("giving up, camera " << serial_ << " not found!");
     return (false);
@@ -776,5 +785,38 @@ bool Camera::start()
     LOG_ERROR("init camera failed for cam: " << serial_);
   }
   return (true);
+}
+
+void Camera::startDiagnostics()
+{
+  const double period = safe_declare<double>("diagnostic_period", -1.0);
+  if (period <= 0) {
+    return;
+  }
+  updater_ = std::make_shared<diagnostic_updater::Updater>(node_, period);
+  updater_->setHardwareID(serial_);
+  minFreqDiag_ = safe_declare<double>("diagnostic_min_freq", -1.0);
+  maxFreqDiag_ = safe_declare<double>("diagnostic_max_freq", -1.0);
+  if (minFreqDiag_ < 0 || maxFreqDiag_ < 0) {
+    BOMB_OUT("must set diagnostic_min_freq and diagnostic_max_freq parameters!");
+  }
+  const int window_size = safe_declare<int>("diagnostic_window", 10);
+  const double min_ts_diff = 1.0 / maxFreqDiag_;
+  const double max_ts_diff = 1.0 / minFreqDiag_;
+  topicDiagnostic_ = std::make_shared<diagnostic_updater::TopicDiagnostic>(
+    "~/" + topicPrefix_ + "image_raw", *updater_,
+    diagnostic_updater::FrequencyStatusParam(&minFreqDiag_, &maxFreqDiag_, 0, window_size),
+    diagnostic_updater::TimeStampStatusParam(min_ts_diff, max_ts_diff));
+  imageArrivalDiagnostic_ = std::make_shared<diagnostic_updater::FrequencyStatus>(
+    diagnostic_updater::FrequencyStatusParam(&minFreqDiag_, &maxFreqDiag_, 0, window_size),
+    "image_arrival");
+  updater_->add(*imageArrivalDiagnostic_);
+}
+
+void Camera::stopDiagnostics()
+{
+  updater_.reset();
+  topicDiagnostic_.reset();
+  imageArrivalDiagnostic_.reset();
 }
 }  // namespace spinnaker_camera_driver
