@@ -73,8 +73,8 @@ include_directories(SYSTEM
 set(ROS_DEPENDENCIES
   "camera_info_manager"
   "diagnostic_updater"
-  "image_transport"
   "flir_camera_msgs"
+  "image_transport"
   "rclcpp"
   "rclcpp_components"
   "sensor_msgs"
