@@ -22,17 +22,19 @@ static rclcpp::Logger get_logger() { return (rclcpp::get_logger("cam_sync")); }
 namespace spinnaker_synchronized_camera_driver
 {
 bool TimeKeeper::getTimeStamp(
-  uint64_t hostTime, uint64_t, uint64_t frameId, size_t ninc, uint64_t * frameTime)
+  uint64_t hostTime, uint64_t imgTime, uint64_t frameId, size_t ninc, uint64_t * frameTime)
 {
-  if (lastHostTime_ == 0) {
+  // when PTP is enable we assume the imgTime is good and ignore the host time
+  const auto time = useIEEE1588_ ? imgTime : hostTime;
+  if (lastTime_ == 0) {
     lastFrameId_ = frameId;
-    lastHostTime_ = hostTime;
+    lastTime_ = time;
     return (false);
   }
   const int64_t gap = frameId - lastFrameId_;
-  const int64_t dt64 = static_cast<int64_t>(hostTime) - static_cast<int64_t>(lastHostTime_);
+  const int64_t dt64 = static_cast<int64_t>(time) - static_cast<int64_t>(lastTime_);
   lastFrameId_ = frameId;
-  lastHostTime_ = hostTime;
+  lastTime_ = time;
 
   numFramesDropped_ += std::max<int64_t>(0, gap - 1);
   numFramesIncomplete_ += ninc;
@@ -41,10 +43,9 @@ bool TimeKeeper::getTimeStamp(
       LOG_WARN(name_ << " dropped " << gap - 1 << " frame(s)");
     }
     const double dt = dt64 * 1e-9 / static_cast<double>(gap);
-    const bool gotTime = driver_->update(index_, hostTime, dt, frameTime);
+    const bool gotTime = driver_->update(index_, time, dt, frameTime);
     if (gotTime) {
-      const double offset =
-        (static_cast<int64_t>(hostTime) - static_cast<int64_t>(*frameTime)) * 1e-9;
+      const double offset = (static_cast<int64_t>(time) - static_cast<int64_t>(*frameTime)) * 1e-9;
       offsetSum_ += offset;
       // running variance is computed following this reference:
       // https://www.johndcook.com/blog/standard_deviation/
@@ -64,7 +65,7 @@ bool TimeKeeper::getTimeStamp(
       LOG_WARN(name_ << " skipping frame with frame id gap of " << gap);
     }
   }
-  *frameTime = hostTime;
+  *frameTime = time;
   return (false);
 }
 

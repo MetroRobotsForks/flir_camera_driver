@@ -39,7 +39,10 @@ class SynchronizedCameraDriver : public rclcpp::Node
 public:
   explicit SynchronizedCameraDriver(const rclcpp::NodeOptions & options);
   ~SynchronizedCameraDriver();
-  bool update(size_t idx, uint64_t hostTime, double dt, uint64_t * frameTime);
+  /**
+   * time is in nanoseconds since epoch and could be host or camera ptp time
+   */
+  bool update(size_t idx, uint64_t time, double dt, uint64_t * frameTime);
 
 private:
   void createCameras();
@@ -57,6 +60,7 @@ private:
   std::shared_ptr<TimeEstimator> timeEstimator_;
   std::unordered_map<std::string, std::shared_ptr<spinnaker_camera_driver::ExposureController>>
     exposureControllers_;
+  bool useIEEE1588_{false};
 };
 }  // namespace spinnaker_synchronized_camera_driver
 #endif  // SPINNAKER_SYNCHRONIZED_CAMERA_DRIVER__SYNCHRONIZED_CAMERA_DRIVER_HPP_

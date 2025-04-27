@@ -111,6 +111,12 @@ void SynchronizedCameraDriver::createCameras()
 {
   using svec = std::vector<std::string>;
   const svec cameras = this->declare_parameter<svec>("cameras", svec());
+  useIEEE1588_ = this->declare_parameter<bool>("use_ieee_1588 ", false);
+  if (useIEEE1588_) {
+    LOG_INFO("using PTP time stamps to synchronize!");
+  } else {
+    LOG_INFO("not using PTP time stamps to synchronize!");
+  }
   if (cameras.empty()) {
     BOMB_OUT("no cameras configured for synchronized driver!");
   }
@@ -120,6 +126,8 @@ void SynchronizedCameraDriver::createCameras()
       std::make_shared<spinnaker_camera_driver::Camera>(this, imageTransport_.get(), c, false);
     cameras_.insert({c, cam});
     timeKeepers_.push_back(std::make_shared<TimeKeeper>(i, c, this));
+    timeKeepers_.back()->setUseIEEE1588(useIEEE1588_);
+    this->declare_parameter<bool>(c + ".use_ieee1588", false);
     cam->setSynchronizer(timeKeepers_.back());
     // set exposure controller if configured
     const auto ctrlName = this->declare_parameter<std::string>(c + ".exposure_controller_name", "");
@@ -135,8 +143,7 @@ void SynchronizedCameraDriver::createCameras()
   numUpdatesRequired_ = cameras.size() * 3;
 }
 
-bool SynchronizedCameraDriver::update(
-  size_t idx, uint64_t hostTime, double dt, uint64_t * frameTime)
+bool SynchronizedCameraDriver::update(size_t idx, uint64_t time, double dt, uint64_t * frameTime)
 {
   std::unique_lock<std::mutex> lock(mutex_);
   constexpr double NUM_FRAMES_TO_AVG = 20.0;
@@ -147,12 +154,12 @@ bool SynchronizedCameraDriver::update(
   if (numUpdatesReceived_ < numUpdatesRequired_) {
     numUpdatesReceived_++;
     if (numUpdatesReceived_ >= numUpdatesRequired_) {
-      timeEstimator_->initialize(hostTime, avgFrameInterval_);
+      timeEstimator_->initialize(time, avgFrameInterval_);
     }
-    *frameTime = hostTime;
+    *frameTime = time;
     return (true);
   }
-  const bool gotTime = timeEstimator_->update(idx, hostTime, frameTime);
+  const bool gotTime = timeEstimator_->update(idx, time, frameTime);
   return (gotTime);
 }
 

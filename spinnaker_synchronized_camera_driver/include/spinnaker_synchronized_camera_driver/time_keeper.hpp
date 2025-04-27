@@ -33,7 +33,7 @@ public:
   const std::string & getName() const { return (name_); }
 
   bool getTimeStamp(
-    uint64_t hostTime, uint64_t imageTime, uint64_t frameId, size_t ninc, uint64_t * ft) override;
+    uint64_t hostTime, uint64_t imgTime, uint64_t frameId, size_t ninc, uint64_t * ft) override;
 
   double getOffsetAverage() const
   {
@@ -48,19 +48,21 @@ public:
   int64_t getNumFramesDropped() const { return (numFramesDropped_); }
   size_t getNumFramesIncomplete() const { return (numFramesIncomplete_); }
   void clearStatistics();
+  void setUseIEEE1588(bool b) { useIEEE1588_ = b; }
 
 private:
   size_t index_;
   std::string name_;
   SynchronizedCameraDriver * driver_{nullptr};
   uint64_t lastFrameId_{0};
-  uint64_t lastHostTime_{0};
+  uint64_t lastTime_{0};
   int64_t numFramesDropped_{0};
   size_t numFramesIncomplete_{0};
   size_t numOffset_{0};
   double offsetSum_{0};
   double S_{0};
   double M_{0};
+  bool useIEEE1588_{false};
 };
 }  // namespace spinnaker_synchronized_camera_driver
 #endif  // SPINNAKER_SYNCHRONIZED_CAMERA_DRIVER__TIME_KEEPER_HPP_
