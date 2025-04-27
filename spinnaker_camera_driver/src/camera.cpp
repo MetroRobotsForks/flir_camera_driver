@@ -746,7 +746,7 @@ bool Camera::start()
     if (std::find(camList.begin(), camList.end(), serial_) == camList.end()) {
       LOG_WARN("no camera found with serial: " << serial_ << " on try # " << retry);
       for (const auto & cam : camList) {
-        LOG_WARN(" found cameras: " << cam);
+        LOG_WARN(" found camera: " << cam);
       }
       std::this_thread::sleep_for(chrono::seconds(1));
     } else {
