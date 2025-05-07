@@ -203,9 +203,8 @@ Using multiple cameras at the same time
 
 The FLIR Spinnaker does not support two programs accessing the Spinnaker SDK at the same time,
 even if two different cameras are accessed. Strange things happen, in particular with USB3 cameras.
-You can however run multiple cameras in the same
-address space using ROS2's Composable Node concept, see the example
-launch file ``multiple_cameras.launch.py``.
+You can however run multiple cameras in the same program (address space) using ROS2's Composable Node
+concept, see the example launch file ``multiple_cameras.launch.py``.
 
 If you are using hardware synchronized cameras please use the ``spinnaker_synchronized_camera_driver``,
 which will associate the images triggered by the same sync pulse with each other
@@ -290,8 +289,10 @@ network (must also have a MTU of 9000):
 ```
 ping <host_ip_address> -c 2 -M do -s 8972
 ```
-Beware that some network cards have `bugs that mess up the MTU when
+Beware that some Intel network cards have `bugs that prevent large MTU settings when
 running ptp4l <https://www.reddit.com/r/networking/comments/1ebvj5y/linux_ptp_and_jumbo_frames_for_gige_vision/>`__.
+At least for the Intel igb cards, installing the 5.19.12 drivers `from here <https://github.com/intel/ethernet-linux-igb/>'__
+fixes these p
 
 For more tips on GigE setup look at FLIR’s support pages
 `here <https://www.flir.com/support-center/iis/machine-vision/knowledge-base/lost-ethernet-data-packets-on-linux-systems/>`__
@@ -311,14 +312,14 @@ Only FLIR GigE cameras are PTP capable, but not all of them. For example the Bla
 Each camera has a built-in PTP hardware clock (PHC). To use it, you need to:
 
 - configure the camera to use PTP by enabling it either in SpinView or via the ROS parameter `gev_ieee_1588`` (set to true/false)
-- run the camera in ``Auto`` or ``SlaveOnly`` mode by setting the corresponding parameter in SpinView or using the ROS parameter ``gev_ieee_1588_mode``.
+- run the camera in ``Auto`` or ``SlaveOnly`` mode by setting the corresponding parameter in SpinView or using the ROS parameter ``gev_ieee_1588_mode``. Running in ``Auto`` rarely makes sense though because one of the cameras may become a master clock without really having an absolute time reference (like ntp) to the ROS host clock.
 - enable time stamps being sent via chunks by setting ``chunk_mode_active``
   to ``True``, ``chunk_selector_timestamp`` to ``Timestamp`` followed by ``chunk_enable_timestamp`` to True.
 - tell the driver to actually use the time stamps instead of the system clock by setting ``use_ieee_1588`` to True. If this flag is set, the driver will populate the ROS image message header stamp with the PTP time stamp.
 
-The launch file section for the Blackfly S has some commented out example settings.
+For an example launch file, see ``multiple_cameras_ptp.launch.py``.
 
-When the camera boots up it will start its PHC time at zero rather than at the correct time (TAI). The driver log will have warning messages and indicate a huge offset.
+When the camera boots up it will start its PHC time at zero rather than at the correct time. The driver log will have warning messages and indicate a huge offset.
 
 ::
 
